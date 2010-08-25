@@ -1,0 +1,251 @@
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * $URL: https://scummvm.svn.sourceforge.net/svnroot/scummvm/scummvm/tags/release-1-1-1/engines/gob/inter_fascin.cpp $
+ * $Id: inter_fascin.cpp 48061 2010-02-14 18:30:12Z strangerke $
+ *
+ */
+
+#include "common/endian.h"
+
+#include "gob/hotspots.h"
+#include "gob/gob.h"
+#include "gob/inter.h"
+#include "gob/global.h"
+#include "gob/util.h"
+#include "gob/dataio.h"
+#include "gob/draw.h"
+#include "gob/game.h"
+#include "gob/script.h"
+#include "gob/palanim.h"
+#include "gob/video.h"
+#include "gob/videoplayer.h"
+#include "gob/sound/sound.h"
+
+namespace Gob {
+
+#define OPCODEVER Inter_Fascination
+#define OPCODEDRAW(i, x)  _opcodesDraw[i]._OPCODEDRAW(OPCODEVER, x)
+#define OPCODEFUNC(i, x)  _opcodesFunc[i]._OPCODEFUNC(OPCODEVER, x)
+#define OPCODEGOB(i, x)   _opcodesGob[i]._OPCODEGOB(OPCODEVER, x)
+
+Inter_Fascination::Inter_Fascination(GobEngine *vm) : Inter_v2(vm) {
+}
+
+void Inter_Fascination::setupOpcodesDraw() {
+	Inter_v2::setupOpcodesDraw();
+
+	OPCODEDRAW(0x03, oFascin_setWinSize);
+	OPCODEDRAW(0x04, oFascin_closeWin);
+	OPCODEDRAW(0x05, oFascin_activeWin);
+	OPCODEDRAW(0x06, oFascin_openWin);
+
+	OPCODEDRAW(0x0A, oFascin_setRenderFlags);
+	OPCODEDRAW(0x0B, oFascin_setWinFlags);
+
+	CLEAROPCODEDRAW(0x50);
+	CLEAROPCODEDRAW(0x51);
+	CLEAROPCODEDRAW(0x52);
+	CLEAROPCODEDRAW(0x53);
+
+	CLEAROPCODEDRAW(0x54);
+	CLEAROPCODEDRAW(0x55);
+	CLEAROPCODEDRAW(0x56);
+
+	CLEAROPCODEDRAW(0x80);
+	CLEAROPCODEDRAW(0x81);
+	CLEAROPCODEDRAW(0x82);
+	CLEAROPCODEDRAW(0x83);
+
+	CLEAROPCODEDRAW(0x84);
+	CLEAROPCODEDRAW(0x85);
+	CLEAROPCODEDRAW(0x86);
+	CLEAROPCODEDRAW(0x87);
+
+	CLEAROPCODEDRAW(0x88);
+}
+
+void Inter_Fascination::setupOpcodesFunc() {
+	Inter_v2::setupOpcodesFunc();
+
+	OPCODEFUNC(0x09, o1_assign);
+	OPCODEFUNC(0x32, oFascin_copySprite);
+}
+
+void Inter_Fascination::setupOpcodesGob() {
+	OPCODEGOB(   1, oFascin_playTirb);
+	OPCODEGOB(   2, oFascin_playTira);
+	OPCODEGOB(   3, oFascin_loadExtasy);
+	OPCODEGOB(   4, oFascin_adlibPlay);
+
+	OPCODEGOB(   5, oFascin_adlibStop);
+	OPCODEGOB(   6, oFascin_adlibUnload);
+	OPCODEGOB(   7, oFascin_loadMus1);
+	OPCODEGOB(   8, oFascin_loadMus2);
+
+	OPCODEGOB(   9, oFascin_loadMus3);
+	OPCODEGOB(  10, oFascin_loadBatt1);
+	OPCODEGOB(  11, oFascin_loadBatt2);
+	OPCODEGOB(  12, oFascin_loadBatt3);
+
+	OPCODEGOB(1000, oFascin_loadMod);
+	OPCODEGOB(1001, oFascin_playProtracker);
+	OPCODEGOB(1002, o2_stopProtracker);
+}
+
+
+bool Inter_Fascination::oFascin_copySprite(OpFuncParams &params) {
+	_vm->_draw->_sourceSurface = _vm->_game->_script->readInt16();
+	_vm->_draw->_destSurface = _vm->_game->_script->readInt16();
+	_vm->_draw->_spriteLeft = _vm->_game->_script->readValExpr();
+	_vm->_draw->_spriteTop = _vm->_game->_script->readValExpr();
+	_vm->_draw->_spriteRight = _vm->_game->_script->readValExpr();
+	_vm->_draw->_spriteBottom = _vm->_game->_script->readValExpr();
+
+	_vm->_draw->_destSpriteX = _vm->_game->_script->readValExpr();
+	_vm->_draw->_destSpriteY = _vm->_game->_script->readValExpr();
+
+	_vm->_draw->_transparency = _vm->_game->_script->readInt16();
+
+	_vm->_draw->spriteOperation(DRAW_BLITSURF);
+	return false;
+}
+
+void Inter_Fascination::oFascin_playTirb(OpGobParams &params) {
+	warning("funcPlayImd with parameter : 'tirb.imd'");
+
+	if (_vm->_vidPlayer->primaryOpen("tirb", 128, 80)) {
+		_vm->_vidPlayer->primaryPlay();
+		_vm->_vidPlayer->primaryClose();
+	}
+}
+
+void Inter_Fascination::oFascin_playTira(OpGobParams &params) {
+	warning("funcPlayImd with parameter : 'tira.imd'");
+
+	if (_vm->_vidPlayer->primaryOpen("tira", 128, 80)) {
+		_vm->_vidPlayer->primaryPlay();
+		_vm->_vidPlayer->primaryClose();
+	}
+}
+
+void Inter_Fascination::oFascin_loadExtasy(OpGobParams &params) {
+	_vm->_sound->adlibLoadTBR("extasy.tbr");
+	_vm->_sound->adlibLoadMDY("extasy.mdy");
+}
+
+void Inter_Fascination::oFascin_adlibPlay(OpGobParams &params) {
+#ifdef ENABLE_FASCIN_ADLIB
+	_vm->_sound->adlibPlay();
+#endif
+}
+
+void Inter_Fascination::oFascin_adlibStop(OpGobParams &params) {
+	_vm->_sound->adlibStop();
+}
+
+void Inter_Fascination::oFascin_adlibUnload(OpGobParams &params) {
+	_vm->_sound->adlibUnload();
+}
+
+void Inter_Fascination::oFascin_loadMus1(OpGobParams &params) {
+	_vm->_sound->adlibLoadTBR("music1.tbr");
+	_vm->_sound->adlibLoadMDY("music1.mdy");
+}
+
+void Inter_Fascination::oFascin_loadMus2(OpGobParams &params) {
+	_vm->_sound->adlibLoadTBR("music2.tbr");
+	_vm->_sound->adlibLoadMDY("music2.mdy");
+}
+
+void Inter_Fascination::oFascin_loadMus3(OpGobParams &params) {
+	_vm->_sound->adlibLoadTBR("music3.tbr");
+	_vm->_sound->adlibLoadMDY("music3.mdy");
+}
+
+void Inter_Fascination::oFascin_loadBatt1(OpGobParams &params) {
+	_vm->_sound->adlibLoadTBR("batt1.tbr");
+	_vm->_sound->adlibLoadMDY("batt1.mdy");
+}
+
+void Inter_Fascination::oFascin_loadBatt2(OpGobParams &params) {
+	_vm->_sound->adlibLoadTBR("batt2.tbr");
+	_vm->_sound->adlibLoadMDY("batt2.mdy");
+}
+
+void Inter_Fascination::oFascin_loadBatt3(OpGobParams &params) {
+	_vm->_sound->adlibLoadTBR("batt3.tbr");
+	_vm->_sound->adlibLoadMDY("batt3.mdy");
+}
+
+void Inter_Fascination::oFascin_loadMod(OpGobParams &params) {
+	// Fascination GE Function 1000 - Load MOD music.
+	// Only used by Amiga and Atari versions.
+	// Useless as it's included in Paula's playProTracker
+}
+
+void Inter_Fascination::oFascin_setWinSize() {
+	_vm->_draw->_winMaxWidth  = _vm->_game->_script->readUint16();
+	_vm->_draw->_winMaxHeight = _vm->_game->_script->readUint16();
+	_vm->_draw->_winVarArrayLeft   = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayTop    = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayWidth  = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayHeight = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayStatus = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayLimitsX = _vm->_game->_script->readVarIndex();
+	_vm->_draw->_winVarArrayLimitsY = _vm->_game->_script->readVarIndex();
+}
+
+void Inter_Fascination::oFascin_closeWin() {
+	int16 id;
+	_vm->_game->_script->evalExpr(&id);
+	_vm->_draw->activeWin(id);
+	_vm->_draw->closeWin(id);
+}
+
+void Inter_Fascination::oFascin_activeWin() {
+	int16 id;
+	_vm->_game->_script->evalExpr(&id);
+	_vm->_draw->activeWin(id);
+}
+
+void Inter_Fascination::oFascin_openWin() {
+	int16 retVal, id;
+	_vm->_game->_script->evalExpr(&id);
+	retVal = _vm->_game->_script->readVarIndex();
+	WRITE_VAR((retVal / 4), (int32) _vm->_draw->openWin(id));
+}
+
+void Inter_Fascination::oFascin_setRenderFlags() {
+	int16 expr;
+	_vm->_game->_script->evalExpr(&expr);
+	_vm->_draw->_renderFlags = expr;
+}
+
+void Inter_Fascination::oFascin_setWinFlags() {
+	int16 expr;
+	_vm->_game->_script->evalExpr(&expr);
+	_vm->_global->_curWinId = expr;
+}
+
+void Inter_Fascination::oFascin_playProtracker(OpGobParams &params) {
+	_vm->_sound->protrackerPlay("mod.extasy");
+}
+} // End of namespace Gob
