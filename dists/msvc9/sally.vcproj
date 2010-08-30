@@ -108,7 +108,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				PreprocessorDefinitions="SALLY_EXPORTS;__SALLY__"
-				RuntimeLibrary="3"
+				RuntimeLibrary="2"
 				DisableLanguageExtensions="false"
 			/>
 			<Tool
