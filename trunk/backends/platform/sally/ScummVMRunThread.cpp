@@ -20,7 +20,7 @@ void CScummVMRunThread::RunEx()
 
 	char *argv[] = { "ScummVMSally" };
 
-	int res = scummvm_main(1, argv);
+	scummvm_main(1, argv);
 
 	g_system->quit();
 	g_system = NULL;

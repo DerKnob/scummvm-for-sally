@@ -5,13 +5,13 @@
 #include "ScummVMRunThread.h"
 
 class CAppScummVM :
-	public SallyAPI::GUI::CApplicationWindow
+	public SallyAPI::GUI::CGameWindow
 {
 private:
-	SallyAPI::GUI::CImageBox*			m_pStartLogo;
-	SallyAPI::GUI::CButton*				m_pStart;
 	SallyAPI::GUI::CButton*				m_pResume;
 	SallyAPI::GUI::CEdit*				m_pKeyboard;
+
+	SallyAPI::GUI::CImageBox*			m_pBackBlackground;
 
 	SallyAPI::GUI::CImageBox*			m_pScummVMImageBox;
 	SallyAPI::GUI::CPicture*			m_pScummVMPicture;
@@ -43,14 +43,13 @@ private:
 	bool ScummIsActive(int x, int y);
 	bool CheckIfScummIsHit(int x, int y);
 	void UpdateScreenResolution();
+	
 	void OnCommandShowMenu();
 	void OnCommandFullscreen();
-	void OnCommandStart();
 	void OnCommandPause();
 	void OnCommandResume();
 	void OnCommandThreadEnded();
 	void OnCommandStartPaint();
-	void OnCommandEndPaint();
 	void OnCommandShowKeyboard();
 	void OnCommandKeyboardClosed();
 	void OnCommandEsc();
@@ -62,6 +61,8 @@ private:
 	virtual bool ProcessMouseDown(int x, int y);
 	virtual bool ProcessMouseUp(int x, int y);
 	virtual bool ProcessMouseMove(int x, int y);
+
+	virtual void	GameLoadEx();
 public:
 	CAppScummVM(SallyAPI::GUI::CGUIBaseObject *parent, int graphicID, const std::string& pluginPath);
 	virtual ~CAppScummVM();
