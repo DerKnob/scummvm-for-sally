@@ -21,9 +21,9 @@ static int mapKey(SDLKey key, SDLMod mod, Uint16 unicode)
 }
 
 CAppScummVM::CAppScummVM(SallyAPI::GUI::CGUIBaseObject *parent, int graphicID, const std::string& pluginPath)
-					 :SallyAPI::GUI::CApplicationWindow(parent, graphicID, pluginPath),
-					 m_iSurfaceWidth(0), m_iSurfaceHeight(0), m_pScummVMPicture(NULL), m_bPause(false),
-					 m_fLastRender(0)
+	:SallyAPI::GUI::CGameWindow(parent, graphicID, pluginPath),
+	m_iSurfaceWidth(0), m_iSurfaceHeight(0), m_pScummVMPicture(NULL), m_bPause(false),
+	m_fLastRender(0)
 {
 	SDL_SetModuleHandle(GetModuleHandle(NULL));
 
@@ -32,32 +32,27 @@ CAppScummVM::CAppScummVM(SallyAPI::GUI::CGUIBaseObject *parent, int graphicID, c
 	m_pKeyboard->Enable(false);
 	this->AddChild(m_pKeyboard);
 
-	m_pStartLogo = new SallyAPI::GUI::CImageBox(this, (WINDOW_WIDTH - 128) / 2, (WINDOW_HEIGHT - 178) / 2, 128, 128);
-	m_pStartLogo->SetImageId(GetGraphicId());
-	this->AddChild(m_pStartLogo);
+	m_pBackBlackground = new SallyAPI::GUI::CImageBox(m_pGameForm, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+	m_pBackBlackground->SetImageId(GUI_THEME_SALLY_BLACK_BACKGROUND);
+	m_pGameForm->AddChild(m_pBackBlackground);
 
-	m_pStart = new SallyAPI::GUI::CButton(this, (WINDOW_WIDTH - 128) / 2, (WINDOW_HEIGHT - 178) / 2 + 128 + 20, 128, CONTROL_HEIGHT, GUI_APP_START);
-	m_pStart->SetText("Start");
-	m_pStart->SetAlign(DT_CENTER | DT_VCENTER);
-	this->AddChild(m_pStart);
-
-	m_pScummVMImageBox = new SallyAPI::GUI::CImageBox(this, 0, 0, 0, 0);
+	m_pScummVMImageBox = new SallyAPI::GUI::CImageBox(m_pGameForm, 0, 0, 0, 0);
 	m_pScummVMImageBox->Visible(false);
 	m_pScummVMImageBox->SetAlphaBlending(0);
-	this->AddChild(m_pScummVMImageBox);
+	m_pGameForm->AddChild(m_pScummVMImageBox);
 
-	m_pResume = new SallyAPI::GUI::CButton(this, (WINDOW_WIDTH - 128) / 2, (WINDOW_HEIGHT - 60) / 2 + 30, 128, CONTROL_HEIGHT, GUI_APP_RESUME);
+	m_pResume = new SallyAPI::GUI::CButton(m_pGameForm, (WINDOW_WIDTH - 128) / 2, (WINDOW_HEIGHT - 60) / 2 + 30, 128, CONTROL_HEIGHT, GUI_APP_RESUME);
 	m_pResume->SetText("Resume");
 	m_pResume->SetAlign(DT_CENTER | DT_VCENTER);
 	m_pResume->Visible(false);
 	m_pResume->SetAlphaBlending(0);
-	this->AddChild(m_pResume);
+	m_pGameForm->AddChild(m_pResume);
 
 	// side menu border
-	m_pSideMenu = new SallyAPI::GUI::CSideMenu(this);
+	m_pSideMenu = new SallyAPI::GUI::CSideMenu(m_pGameForm);
 	m_pSideMenu->Visible(false);
 	m_pSideMenu->SetAlphaBlending(0);
-	this->AddChild(m_pSideMenu);
+	m_pGameForm->AddChild(m_pSideMenu);
 
 	m_pMenuShowMenu = new SallyAPI::GUI::CSideMenuButton(m_pSideMenu, SallyAPI::GUI::SIDE_MENUE_BUTTON_TYPE_NORMAL, GUI_APP_SHOW_MENU);
 	m_pMenuShowMenu->SetText("Menu");
@@ -165,34 +160,27 @@ void CAppScummVM::SendMessageToParent(SallyAPI::GUI::CGUIBaseObject* reporter, i
 
 			control->Visible(false);
 
-			if (reporter == m_pStartLogo)
+			// blend out is done
+			if (reporter == m_pStartForm)
 				OnCommandStartPaint();
 
 			if (reporter == m_pResume)
 			{
+				// Pause off
 				m_pSideMenu->Visible(true);
 				m_pScummVMImageBox->Visible(true);
 				m_pSideMenu->BlendAnimated(255, 500);
 				m_pScummVMImageBox->BlendAnimated(255, 500);
 			}
-
-			if (m_bPause)
+			else if (reporter == m_pScummVMImageBox)
 			{
-				// have we blend out?
-				if (reporter == m_pScummVMImageBox)
-				{
-					m_pResume->Enable(true);
-					m_pResume->Visible(true);
-					m_pResume->BlendAnimated(255, 500);
-				}
-			}
-			else
-			{
-				if (reporter == m_pScummVMImageBox)
-					OnCommandEndPaint();
+				// Pause on
+				m_pResume->Enable(true);
+				m_pResume->Visible(true);
+				m_pResume->BlendAnimated(255, 500);
 			}
 		}
-		return;
+		break;
 	case GUI_APP_THREAD_ENDED:
 		OnCommandThreadEnded();
 		return;
@@ -213,9 +201,6 @@ void CAppScummVM::SendMessageToParent(SallyAPI::GUI::CGUIBaseObject* reporter, i
 		case GUI_APP_FULLSCREEN:
 			OnCommandFullscreen();
 			return;
-		case GUI_APP_START:
-			OnCommandStart();
-			return;
 		case GUI_APP_PAUSE:
 			OnCommandPause();
 			return;
@@ -231,7 +216,7 @@ void CAppScummVM::SendMessageToParent(SallyAPI::GUI::CGUIBaseObject* reporter, i
 		}
 		break;
 	}
-	SallyAPI::GUI::CApplicationWindow::SendMessageToParent(reporter, reporterId, messageId, messageParameter);
+	SallyAPI::GUI::CGameWindow::SendMessageToParent(reporter, reporterId, messageId, messageParameter);
 }
 
 void CAppScummVM::OnCommandStartPaint()
@@ -243,21 +228,9 @@ void CAppScummVM::OnCommandStartPaint()
 	m_pSideMenu->BlendAnimated(255, 500);
 }
 
-void CAppScummVM::OnCommandEndPaint()
-{
-	// blend in
-	m_pStart->Enable(true);
-	m_pStart->Visible(true);
-	m_pStartLogo->Visible(true);
-	m_pStart->BlendAnimated(255, 500);
-	m_pStartLogo->BlendAnimated(255, 500);
-}
-
 void CAppScummVM::OnCommandThreadEnded()
 {
-	// blend out
-	m_pScummVMImageBox->BlendAnimated(0, 500);
-	m_pSideMenu->BlendAnimated(0, 500);
+	SendMessageToParent(this, MS_SALLY_GAME_STOP, GUI_BUTTON_CLICKED);
 }
 
 void CAppScummVM::OnCommandPause()
@@ -321,15 +294,10 @@ void CAppScummVM::OnCommandResume()
 	m_bPause = false;
 }
 
-void CAppScummVM::OnCommandStart()
+void CAppScummVM::GameLoadEx()
 {
 	// start the scummvm thread
 	m_pScummThread.Start();
-
-	// blend out
-	m_pStart->Enable(false);
-	m_pStart->BlendAnimated(0, 500);
-	m_pStartLogo->BlendAnimated(0, 500);
 }
 
 void CAppScummVM::OnCommandFullscreen()
@@ -400,12 +368,10 @@ void CAppScummVM::OnCommandKeyboardClosed()
 
 void CAppScummVM::RenderControl()
 {
-	DrawImage(GUI_THEME_SALLY_BLACK_BACKGROUND, 0, 0);
-
 	// time for the next frame?
 	if (m_fLastRender + 0.05f > m_fTimeDelta)
 	{
-		SallyAPI::GUI::CApplicationWindow::RenderControl();
+		SallyAPI::GUI::CGameWindow::RenderControl();
 		return;
 	}
 	m_fLastRender = m_fTimeDelta;
@@ -413,7 +379,7 @@ void CAppScummVM::RenderControl()
 	// is summv active?
 	if (!ScummIsActive(-1, -1))
 	{
-		SallyAPI::GUI::CApplicationWindow::RenderControl();
+		SallyAPI::GUI::CGameWindow::RenderControl();
 		return;
 	}
 
@@ -427,7 +393,7 @@ void CAppScummVM::RenderControl()
 
 	sdl_system->unlockHardwareScreen();
 
-	SallyAPI::GUI::CApplicationWindow::RenderControl();
+	SallyAPI::GUI::CGameWindow::RenderControl();
 }
 
 void CAppScummVM::RenderScummVMWindow(SDL_Surface* surf)
@@ -480,11 +446,10 @@ void CAppScummVM::RenderScummVMWindow(SDL_Surface* surf)
 	pixelSpace* directXTextutureData = (pixelSpace*)(locked_rect.pBits);
 
 	int pitchDirectX = locked_rect.Pitch / sizeof(pixelSpace);
-	int pitchSDL = surf->pitch / surf->format->BytesPerPixel;
+
 	char* pSource = sdlTextureData;
 	pixelSpace* pDestination = directXTextutureData;
-	int x = 0;
-	int y = 0;
+
 	for(int i = 0; i < m_iSurfaceHeight; ++i)
 	{
 		// fist pixel of this line
@@ -570,7 +535,7 @@ float CAppScummVM::GetScalar()
 
 bool CAppScummVM::ProcessMouseDoubleClick(int x, int y)
 {
-	SallyAPI::GUI::CApplicationWindow::ProcessMouseDoubleClick(x, y);
+	SallyAPI::GUI::CGameWindow::ProcessMouseDoubleClick(x, y);
 
 	if (!ScummIsActive(x, y))
 		return true;
@@ -602,7 +567,7 @@ bool CAppScummVM::ProcessMouseDoubleClick(int x, int y)
 
 bool CAppScummVM::ProcessMouseDown(int x, int y)
 {
-	SallyAPI::GUI::CApplicationWindow::ProcessMouseDown(x, y);
+	SallyAPI::GUI::CGameWindow::ProcessMouseDown(x, y);
 
 	if (!ScummIsActive(x, y))
 		return true;
@@ -626,7 +591,7 @@ bool CAppScummVM::ProcessMouseDown(int x, int y)
 
 bool CAppScummVM::ProcessMouseUp(int x, int y)
 {
-	SallyAPI::GUI::CApplicationWindow::ProcessMouseUp(x, y);
+	SallyAPI::GUI::CGameWindow::ProcessMouseUp(x, y);
 
 	if (!ScummIsActive(x, y))
 		return true;
@@ -649,7 +614,7 @@ bool CAppScummVM::ProcessMouseUp(int x, int y)
 
 bool CAppScummVM::ProcessMouseMove(int x, int y)
 {
-	SallyAPI::GUI::CApplicationWindow::ProcessMouseMove(x, y);
+	SallyAPI::GUI::CGameWindow::ProcessMouseMove(x, y);
 
 	if (!ScummIsActive(x, y))
 		return true;
