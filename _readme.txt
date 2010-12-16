@@ -31,7 +31,7 @@ SourceForge:
 
 To compile the code you will need the following libraries installed:
 * SallyAPI with all necessary software
-	http://www.sally-project.de/dev.php?menu=api
+	http://wiki.sally-project.org/index.php?title=Developer_Area
 * All libs to compile ScummVM for more infos take a look at the homepage
 	http://www.scummvm.org/
 
