@@ -55,7 +55,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="zlib.lib libmad.lib libvorbisfile_static.lib libvorbis_static.lib libogg_static.lib libFLAC_static.lib winmm.lib sdl.lib $(OutDir)/../*.lib"
-				OutputFile="..\..\..\..\sally\Debug\applications\org.scummvm.sally.app\sally.dll"
+				OutputFile="..\..\..\..\sally\sally\Debug\applications\org.scummvm.sally.app\sally.dll"
 				LinkIncremental="2"
 				IgnoreDefaultLibraryNames="libcmtd.lib"
 				SubSystem="2"
