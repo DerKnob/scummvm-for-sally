@@ -1,28 +1,3 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \file	sally\AppScummVM.h
-///
-/// \brief	Declares the application scummvm class. 
-///
-/// \author	Christian Knobloch
-/// \date	13.09.2010
-///
-/// This file is part of the Sally port of ScummVM
-/// 
-/// This program is free software; you can redistribute it and/or
-/// modify it under the terms of the GNU General Public License
-/// as published by the Free Software Foundation; either version 2
-/// of the License, or (at your option) any later version.
-///
-/// This program is distributed in the hope that it will be useful,
-/// but WITHOUT ANY WARRANTY; without even the implied warranty of
-/// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-/// GNU General Public License for more details.
-///
-/// You should have received a copy of the GNU General Public License
-/// along with this program; if not, write to the Free Software
-/// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 #pragma once
 #include <sallyAPI\sallyAPI.h>
 #include <limits>
@@ -30,13 +5,13 @@
 #include "ScummVMRunThread.h"
 
 class CAppScummVM :
-	public SallyAPI::GUI::CGameWindow
+	public SallyAPI::GUI::CApplicationWindow
 {
 private:
+	SallyAPI::GUI::CImageBox*			m_pStartLogo;
+	SallyAPI::GUI::CButton*				m_pStart;
 	SallyAPI::GUI::CButton*				m_pResume;
 	SallyAPI::GUI::CEdit*				m_pKeyboard;
-
-	SallyAPI::GUI::CImageBox*			m_pBackBlackground;
 
 	SallyAPI::GUI::CImageBox*			m_pScummVMImageBox;
 	SallyAPI::GUI::CPicture*			m_pScummVMPicture;
@@ -68,13 +43,14 @@ private:
 	bool ScummIsActive(int x, int y);
 	bool CheckIfScummIsHit(int x, int y);
 	void UpdateScreenResolution();
-	
 	void OnCommandShowMenu();
 	void OnCommandFullscreen();
+	void OnCommandStart();
 	void OnCommandPause();
 	void OnCommandResume();
 	void OnCommandThreadEnded();
 	void OnCommandStartPaint();
+	void OnCommandEndPaint();
 	void OnCommandShowKeyboard();
 	void OnCommandKeyboardClosed();
 	void OnCommandEsc();
@@ -86,8 +62,6 @@ private:
 	virtual bool ProcessMouseDown(int x, int y);
 	virtual bool ProcessMouseUp(int x, int y);
 	virtual bool ProcessMouseMove(int x, int y);
-
-	virtual void	GameLoadEx();
 public:
 	CAppScummVM(SallyAPI::GUI::CGUIBaseObject *parent, int graphicID, const std::string& pluginPath);
 	virtual ~CAppScummVM();
