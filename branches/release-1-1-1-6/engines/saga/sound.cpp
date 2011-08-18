@@ -1,0 +1,174 @@
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * $URL: https://scummvm.svn.sourceforge.net/svnroot/scummvm/scummvm/tags/release-1-1-1/engines/saga/sound.cpp $
+ * $Id: sound.cpp 47846 2010-02-03 09:42:11Z lordhoto $
+ *
+ */
+
+#include "common/config-manager.h"
+
+#include "saga/saga.h"
+#include "saga/sound.h"
+
+#include "sound/audiostream.h"
+#include "sound/mixer.h"
+#include "sound/decoders/adpcm.h"
+#include "sound/decoders/raw.h"
+
+namespace Saga {
+
+Sound::Sound(SagaEngine *vm, Audio::Mixer *mixer) :
+	_vm(vm), _mixer(mixer), _voxStream(0) {
+
+	for (int i = 0; i < SOUND_HANDLES; i++)
+		_handles[i].type = kFreeHandle;
+
+	setVolume();
+}
+
+Sound::~Sound() {
+	delete _voxStream;
+}
+
+SndHandle *Sound::getHandle() {
+	for (int i = 0; i < SOUND_HANDLES; i++) {
+		if (_handles[i].type == kFreeHandle)
+			return &_handles[i];
+
+		if (!_mixer->isSoundHandleActive(_handles[i].handle)) {
+			_handles[i].type = kFreeHandle;
+			return &_handles[i];
+		}
+	}
+
+	error("Sound::getHandle(): Too many sound handles");
+
+	return NULL;	// for compilers that don't support NORETURN
+}
+
+void Sound::playSoundBuffer(Audio::SoundHandle *handle, const SoundBuffer &buffer, int volume,
+				sndHandleType handleType, bool loop) {
+
+	Audio::RewindableAudioStream *stream = 0;
+
+	Audio::Mixer::SoundType soundType = (handleType == kVoiceHandle) ?
+				Audio::Mixer::kSpeechSoundType : Audio::Mixer::kSFXSoundType;
+
+	if (!buffer.isCompressed) {
+		stream = Audio::makeRawStream(buffer.buffer, buffer.size, buffer.frequency, buffer.flags);
+	} else {
+		Common::SeekableReadStream *memStream = new Common::MemoryReadStream(buffer.buffer, buffer.size, DisposeAfterUse::YES);
+
+		switch (buffer.soundType) {
+#ifdef USE_MAD
+		case kSoundMP3:
+			stream = Audio::makeMP3Stream(memStream, DisposeAfterUse::YES);
+			break;
+#endif
+#ifdef USE_VORBIS
+		case kSoundOGG:
+			stream = Audio::makeVorbisStream(memStream, DisposeAfterUse::YES);
+			break;
+#endif
+#ifdef USE_FLAC
+		case kSoundFLAC:
+			stream = Audio::makeFLACStream(memStream, DisposeAfterUse::YES);
+			break;
+#endif
+		default:
+			// Unknown compression, ignore sample
+			delete memStream;
+			warning("Unknown compression, ignoring sound");
+			break;
+		}
+	}
+
+	if (stream != NULL)
+		_mixer->playInputStream(soundType, handle, Audio::makeLoopingAudioStream(stream, loop ? 0 : 1), -1, volume);
+}
+
+void Sound::playSound(SoundBuffer &buffer, int volume, bool loop) {
+	SndHandle *handle = getHandle();
+
+	handle->type = kEffectHandle;
+	playSoundBuffer(&handle->handle, buffer, 2 * volume, handle->type, loop);
+}
+
+void Sound::pauseSound() {
+	for (int i = 0; i < SOUND_HANDLES; i++)
+		if (_handles[i].type == kEffectHandle)
+			_mixer->pauseHandle(_handles[i].handle, true);
+}
+
+void Sound::resumeSound() {
+	for (int i = 0; i < SOUND_HANDLES; i++)
+		if (_handles[i].type == kEffectHandle)
+			_mixer->pauseHandle(_handles[i].handle, false);
+}
+
+void Sound::stopSound() {
+	for (int i = 0; i < SOUND_HANDLES; i++)
+		if (_handles[i].type == kEffectHandle) {
+			_mixer->stopHandle(_handles[i].handle);
+			_handles[i].type = kFreeHandle;
+		}
+}
+
+void Sound::playVoice(SoundBuffer &buffer) {
+	SndHandle *handle = getHandle();
+
+	handle->type = kVoiceHandle;
+	playSoundBuffer(&handle->handle, buffer, 255, handle->type, false);
+}
+
+void Sound::pauseVoice() {
+	for (int i = 0; i < SOUND_HANDLES; i++)
+		if (_handles[i].type == kVoiceHandle)
+			_mixer->pauseHandle(_handles[i].handle, true);
+}
+
+void Sound::resumeVoice() {
+	for (int i = 0; i < SOUND_HANDLES; i++)
+		if (_handles[i].type == kVoiceHandle)
+			_mixer->pauseHandle(_handles[i].handle, false);
+}
+
+void Sound::stopVoice() {
+	for (int i = 0; i < SOUND_HANDLES; i++)
+		if (_handles[i].type == kVoiceHandle) {
+			_mixer->stopHandle(_handles[i].handle);
+			_handles[i].type = kFreeHandle;
+		}
+}
+
+void Sound::stopAll() {
+	stopVoice();
+	stopSound();
+}
+
+void Sound::setVolume() {
+	_vm->_soundVolume = ConfMan.getInt("sfx_volume");
+	_vm->_speechVolume = ConfMan.getInt("speech_volume");
+	_mixer->setVolumeForSoundType(Audio::Mixer::kSFXSoundType, _vm->_soundVolume);
+	_mixer->setVolumeForSoundType(Audio::Mixer::kSpeechSoundType, _vm->_speechVolume);
+}
+
+} // End of namespace Saga
